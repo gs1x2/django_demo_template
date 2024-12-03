@@ -6,11 +6,15 @@ pipeline {
         }
     }
     stages {
-        stage('req2') {
+        stage("deps") {
             steps {
-                script {
-                    sh 'pip install -r requirements.txt'
-                }
+                sh 'pip install -r requirements.txt'
+                
+            }
+        }
+        stage("test") {
+            steps {
+                sh 'python manage.py test'
             }
         }
     }
