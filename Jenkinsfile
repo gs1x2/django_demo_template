@@ -25,5 +25,19 @@ pipeline {
                     ]
             }
         }
+        stage("push") {
+            steps {
+                withCredentials(
+                [
+                    usernamaPassword(usernameVariable: 'LOGIN', passwordVariable: 'PASSWORD', credentialsId: 'dockerhub')
+                    ]
+                ) {
+                    sh 'docker login -u ${LOGIN} -P ${PASSWORD}'
+                    sh 'docker push ${IMAGE_NAME}:latest'
+                    sh 'docker push ${IMAGE_NAME}:${GIT_COMMIT}'
+                }
+
+            }
+        }
     }
 }
