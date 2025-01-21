@@ -2,7 +2,10 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "gs1x2/django_demo_template"
-
+        PROD_CRED_ID = "devops_prod_key"
+        PROD_ADDRESS_CRED_ID = "devops_prod_address"
+        PROJECT_NAME = "common_django"
+        DOMAIN = "common.prod.mshp-devops.com"
     }
     stages {
         stage("test") {
@@ -28,15 +31,32 @@ pipeline {
         stage("push") {
             steps {
                 withCredentials(
-                [
-                    usernamePassword(usernameVariable: 'LOGIN', passwordVariable: 'PASSWORD', credentialsId: 'dockerhub')
+                    [
+                        usernamePassword(usernameVariable: 'LOGIN', passwordVariable: 'PASSWORD', credentialsId: 'dockerhub')
+                        ]
+                    ) {
+                        sh 'docker login -u ${LOGIN} -p ${PASSWORD}'
+                        sh 'docker push ${IMAGE_NAME}:latest'
+                        sh 'docker push ${IMAGE_NAME}:${GIT_COMMIT}'
+                    }
+            }
+        }
+        stage("deploy") {
+            steps {
+                withCredentials(
+                    [
+                        sshUserPrivateKey(credentialsId: "${PROD_CRED_ID}", keyFileVariable: 'KEY_FILE', usernameVariable:'USERNAME'),
+                        string(credentialsId: "${PROD_ADDRESS_CRED_ID}", variable:'SERVER_ADDRESS')
                     ]
-                ) {
-                    sh 'docker login -u ${LOGIN} -p ${PASSWORD}'
-                    sh 'docker push ${IMAGE_NAME}:latest'
-                    sh 'docker push ${IMAGE_NAME}:${GIT_COMMIT}'
+                        ) {
+                    sh 'ssh -o StrictHostKeyChecking=no -i "${KEY_FILE}" ${USERNAME}@${SERVER_ADDRESS} mkdir -p ${PROJECT_NAME}'
+                    sh 'scp -o StrictHostKeyChecking=no -i "${KEY_FILE}" docker-compose.yaml ${USERNAME}@${SERVER_ADDRESS}:${PROJECT_NAME}/'
+                    sh 'ssh -o StrictHostKeyChecking=no -i "${KEY_FILE}" ${USERNAME}@${SERVER_ADDRESS} docker compose -f ${PROJECT_NAME}/docker-compose.yaml pull'
+                    sh 'ssh -o StrictHostKeyChecking=no -i "${KEY_FILE}" ${USERNAME}@${SERVER_ADDRESS} docker compose -f ${PROJECT_NAME}/docker-compose.yaml up -d'
+                    sh 'scp -o StrictHostKeyChecking=no -i "${KEY_FILE}" common.prod.mshp-devops.com.conf ${USERNAME}@${SERVER_ADDRESS}:nginx'
+                    sh 'ssh -o StrictHostKeyChecking=no -i "${KEY_FILE}" ${USERNAME}@${SERVER_ADDRESS} sudo certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m test@test.com'
+                    sh 'ssh -o StrictHostKeyChecking=no -i "${KEY_FILE}" ${USERNAME}@${SERVER_ADDRESS} sudo systemctl reload nginx'
                 }
-
             }
         }
     }

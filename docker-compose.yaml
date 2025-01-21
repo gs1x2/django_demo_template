@@ -1,0 +1,5 @@
+services:
+  app:
+    image: iorp/django_demo:latest
+    ports:
+      - "8091:8000"
