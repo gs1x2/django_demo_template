@@ -32,7 +32,7 @@ pipeline {
                     usernamePassword(usernameVariable: 'LOGIN', passwordVariable: 'PASSWORD', credentialsId: 'dockerhub')
                     ]
                 ) {
-                    sh 'docker login -u ${LOGIN} -P ${PASSWORD}'
+                    sh 'docker login -u ${LOGIN} -p ${PASSWORD}'
                     sh 'docker push ${IMAGE_NAME}:latest'
                     sh 'docker push ${IMAGE_NAME}:${GIT_COMMIT}'
                 }
