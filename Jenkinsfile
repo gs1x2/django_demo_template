@@ -5,7 +5,7 @@ pipeline {
         PROD_CRED_ID = "devops_prod_key"
         PROD_ADDRESS_CRED_ID = "devops_prod_address"
         PROJECT_NAME = "common_django"
-        DOMAIN = "common.prod.mshp-devops.com"
+        DOMAIN = "goltsev.prod.mshp-devops.com"
     }
     stages {
         stage("test") {
